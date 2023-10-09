@@ -290,6 +290,65 @@ SELECT MAX(numeric_duration) - MIN(numeric_duration) AS minutes_difference
 FROM CTE
 
 -- 16. What was the average speed for each runner for each delivery and do you notice any trend for these values?
+SELECT R.RUNNER_ID, C.CUSTOMER_ID, C.ORDER_ID,
+AVG(REGEXP_REPLACE(DURATION, 'minute|minutes|mins', '')::FLOAT/60) as numeric_duration,
+AVG(REGEXP_REPLACE(DISTANCE, 'KM|Km|km', '')::FLOAT) as numeric_distance,
+AVG(REGEXP_REPLACE(DISTANCE, 'KM|Km|km', '')::FLOAT/REGEXP_REPLACE(DURATION, 'minute|minutes|mins', '')::FLOAT*60) as numeric_speed
+FROM CUSTOMER_ORDERS AS C
+LEFT JOIN RUNNER_ORDERS AS R
+ON C.ORDER_ID = R.ORDER_ID
+WHERE PICKUP_TIME <> 'null'
+GROUP BY R.RUNNER_ID, C.CUSTOMER_ID, C.ORDER_ID
+ORDER BY R.RUNNER_ID, C.CUSTOMER_ID, C.ORDER_ID
+
+-- 17. What is the successful delivery percentage for each runner?
+SELECT RUNNER_ID,
+SUM(
+CASE
+	WHEN DISTANCE = 'null' THEN 0
+	ELSE 1
+END) * 100/COUNT(*) AS successful_orders
+FROM RUNNER_ORDERS
+GROUP BY RUNNER_ID
+ORDER BY RUNNER_ID
+
+/* C. Ingredient Optimisation */
+-- 18. What are the standard ingredients for each pizza?
+WITH CTE1 AS
+(
+SELECT PIZZA_ID, UNNEST(STRING_TO_ARRAY(TOPPINGS, ', '))::INTEGER AS TOPPING_ID
+FROM PIZZA_RECIPES
+), 
+CTE2 AS
+(
+SELECT CTE1.PIZZA_ID, CTE1.TOPPING_ID, P.TOPPING_NAME
+FROM CTE1
+LEFT JOIN PIZZA_TOPPINGS AS P
+ON CTE1.TOPPING_ID = P.TOPPING_ID
+)
+
+SELECT CTE2.PIZZA_ID,
+STRING_AGG(CTE2.TOPPING_NAME::TEXT, ', ') AS std_ingredients
+FROM CTE2
+GROUP BY CTE2.PIZZA_ID
+ORDER BY CTE2.PIZZA_ID
+
+-- 19. What was the most commonly added extra?
+WITH CTE1 AS
+(
+SELECT PIZZA_ID, UNNEST(STRING_TO_ARRAY(TOPPINGS, ', '))::INTEGER AS TOPPING_ID
+FROM PIZZA_RECIPES
+)
+
+SELECT P.TOPPING_ID, P.TOPPING_NAME,
+COUNT(C.PIZZA_ID) AS used_in_pizza
+FROM CTE1 AS C
+JOIN PIZZA_TOPPINGS AS P
+ON C.TOPPING_ID = P.TOPPING_ID
+GROUP BY P.TOPPING_ID, P.TOPPING_NAME
+ORDER BY used_in_pizza DESC, P.TOPPING_ID ASC
+
+-- 20. What was the most common exclusion?
 SELECT * FROM CUSTOMER_ORDERS
 SELECT * FROM PIZZA_NAMES
 SELECT * FROM PIZZA_RECIPES
@@ -297,20 +356,9 @@ SELECT * FROM PIZZA_TOPPINGS
 SELECT * FROM RUNNER_ORDERS
 SELECT * FROM RUNNERS
 
-SELECT *
-FROM CUSTOMER_ORDERS AS C
-LEFT JOIN RUNNER_ORDERS AS R
-ON C.ORDER_ID = R.ORDER_ID
-WHERE PICKUP_TIME <> 'null'
 
 
--- 17. What is the successful delivery percentage for each runner?
 
-
-/* C. Ingredient Optimisation */
--- 18. What are the standard ingredients for each pizza?
--- 19. What was the most commonly added extra?
--- 20. What was the most common exclusion?
 -- 21. Generate an order item for each record in the customers_orders table in the format of one of the following:
 ----- * Meat Lovers
 ----- * Meat Lovers - Exclude Beef
