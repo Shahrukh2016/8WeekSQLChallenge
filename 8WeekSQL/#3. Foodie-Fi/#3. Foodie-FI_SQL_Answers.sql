@@ -2713,11 +2713,39 @@ GROUP BY DATE_PART('MONTH', S.START_DATE)
 ORDER BY month ASC
 
 -- 4. What plan start_date values occur after the year 2020 for our dataset? 
---    Show the breakdown by count of events for each plan_name
+--    Show the breakdown by count of events for each plan_name.
+SELECT P.PLAN_ID, P.PLAN_NAME, COUNT(P.PLAN_ID) AS events
+FROM SUBSCRIPTIONS AS S
+JOIN PLANS AS P
+ON S.PLAN_ID = P.PLAN_ID
+WHERE DATE_PART('YEAR', S.START_DATE) > 2020
+GROUP BY P.PLAN_ID, P.PLAN_NAME
+ORDER BY events
+
+-- 5. What is the customer count and percentage of customers 
+--    who have churned rounded to 1 decimal place?
 SELECT * FROM PLANS
 SELECT * FROM SUBSCRIPTIONS
 
--- 5. What is the customer count and percentage of customers who have churned rounded to 1 decimal place?
+WITH CTE AS
+(
+SELECT *,
+CASE
+	WHEN PLAN_ID = 4 THEN 1
+	ELSE 0
+END AS flag
+FROM SUBSCRIPTIONS
+)
+
+SELECT COUNT(flag) AS churn_count, 
+	   ROUND(SUM(flag) * 100/COUNT(flag),2) AS churn_percentage
+FROM CTE
+	
+SELECT COUNT(*), 
+FROM SUBSCRIPTIONS AS S
+JOIN PLANS AS P
+ON S.PLAN_ID = P.PLAN_ID
+WHERE P.PLAN_ID = 4
 
 --6. How many customers have churned straight after their initial free trial.
 --   what percentage is this rounded to the nearest whole number?
