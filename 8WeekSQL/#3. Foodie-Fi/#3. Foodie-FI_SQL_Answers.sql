@@ -2723,25 +2723,9 @@ GROUP BY P.PLAN_ID, P.PLAN_NAME
 ORDER BY events
 
 -- 5. What is the customer count and percentage of customers 
---    who have churned rounded to 1 decimal place?
-SELECT * FROM PLANS
-SELECT * FROM SUBSCRIPTIONS
-
-WITH CTE AS
-(
-SELECT *,
-CASE
-	WHEN PLAN_ID = 4 THEN 1
-	ELSE 0
-END AS flag
-FROM SUBSCRIPTIONS
-)
-
-SELECT COUNT(flag) AS churn_count, 
-	   ROUND(SUM(flag) * 100/COUNT(flag),2) AS churn_percentage
-FROM CTE
-	
-SELECT COUNT(*), 
+--    who have churned rounded to 1 decimal place?	
+SELECT COUNT(DISTINCT CUSTOMER_ID) AS churned_customers,
+ROUND(COUNT(DISTINCT CUSTOMER_ID) * 100.0 / (SELECT COUNT(DISTINCT CUSTOMER_ID) FROM SUBSCRIPTIONS),2) AS churned_precentage
 FROM SUBSCRIPTIONS AS S
 JOIN PLANS AS P
 ON S.PLAN_ID = P.PLAN_ID
@@ -2749,10 +2733,49 @@ WHERE P.PLAN_ID = 4
 
 --6. How many customers have churned straight after their initial free trial.
 --   what percentage is this rounded to the nearest whole number?
+WITH CTE AS
+(
+SELECT S.CUSTOMER_ID, S.PLAN_ID, P.PLAN_NAME, S.START_DATE,
+ROW_NUMBER() OVER(PARTITION BY S.CUSTOMER_ID ORDER BY S.START_DATE ASC) AS RN
+FROM SUBSCRIPTIONS AS S
+JOIN PLANS AS P
+ON S.PLAN_ID = P.PLAN_ID
+)
 
+SELECT COUNT(DISTINCT CUSTOMER_ID) AS churned_customers,
+ROUND(COUNT(DISTINCT CUSTOMER_ID) * 100.0 / (SELECT COUNT(DISTINCT CUSTOMER_ID) FROM SUBSCRIPTIONS),2) AS churned_precentage
+FROM CTE
+WHERE PLAN_ID = 4 AND RN = 2
+	
+	
 -- 7. What is the number and percentage of customer plans after their initial free trial?
+WITH CTE AS
+(
+SELECT S.CUSTOMER_ID, S.PLAN_ID, P.PLAN_NAME, S.START_DATE,
+ROW_NUMBER() OVER(PARTITION BY S.CUSTOMER_ID ORDER BY S.START_DATE ASC) AS RN
+FROM SUBSCRIPTIONS AS S
+JOIN PLANS AS P
+ON S.PLAN_ID = P.PLAN_ID
+)
+
+SELECT COUNT(DISTINCT CUSTOMER_ID) AS retained_customers,
+ROUND(COUNT(DISTINCT CUSTOMER_ID) * 100.0 / (SELECT COUNT(DISTINCT CUSTOMER_ID) FROM SUBSCRIPTIONS),2) AS retained_percentage
+FROM CTE
+WHERE PLAN_ID IN (1,2,3) AND RN IN (2)
 
 -- 8. What is the customer count and percentage breakdown of all 5 plan_name values at 2020-12-31?
+SELECT * FROM PLANS
+SELECT * FROM SUBSCRIPTIONS
+
+SELECT PLAN_ID, COUNT(CUSTOMER_ID) AS total_customers,
+ROUND(COUNT(CUSTOMER_ID)/(SELECT COUNT(CUSTOMER_ID) FROM SUBSCRIPTIONS WHERE START_DATE <= '2020-12-31'),2) AS customer_percentage
+FROM SUBSCRIPTIONS
+WHERE START_DATE <= '2020-12-31'
+GROUP BY PLAN_ID
+ORDER BY PLAN_ID
+
+
+
 
 -- 9. How many customers have upgraded to an annual plan in 2020?
 
