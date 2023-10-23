@@ -1,0 +1,26 @@
+CREATE TABLE t1(
+	c1 INTEGER,
+	c2 VARCHAR(25)
+);
+
+INSERT INTO t1
+VALUES (1,'a'),(2,'b'),(3,'c'),(4,'d'),(5,'e'),(1,'f')
+
+
+CREATE TABLE t2(
+	d1 INTEGER,
+	d2 VARCHAR(25)
+);
+
+INSERT INTO t2
+VALUES (1,'x'),(2,'y'),(3,'z')
+
+
+
+SELECT * FROM T1
+SELECT * FROM T2
+
+SELECT *
+FROM T1
+RIGHT JOIN T2
+ON T1.C1 = T2.D1
